@@ -23,7 +23,7 @@ jobs:
         cache: gradle
 
     - name: Generate Gradle Wrapper
-      run: gradle wrapper --gradle-version 8.5
+      run: gradle wrapper --gradle-version 8.9
 
     - name: Build Debug APK
       run: ./gradlew assembleDebug
