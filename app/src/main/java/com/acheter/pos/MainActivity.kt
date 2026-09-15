@@ -23,12 +23,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Hide Action Bar and set immersive fullscreen mode
-        supportActionBar?.hide()
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            window.insetsController?.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
-            window.insetsController?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
+        // Removed immersive full-screen mode for debugging purposes.
+        // The status bar and navigation buttons will now be visible.
+        supportActionBar?.show()
 
         webView = WebView(this)
         setContentView(webView)
