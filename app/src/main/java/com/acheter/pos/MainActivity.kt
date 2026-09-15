@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         webView.webChromeClient = WebChromeClient()
 
         // Inject the Native Hardware Bridge into the Web App
-        webView.addJavascriptInterface(WebAppInterface(this, webView), "POSHardware")
+        webView.addJavascriptInterface(WebAppInterface(this, webView), "AndroidBridge")
 
         // Load the Dedicated POS Web App
         webView.loadUrl("https://acheter.xo.je")
@@ -84,13 +84,13 @@ class MainActivity : AppCompatActivity() {
         return super.dispatchKeyEvent(event)
     }
     
+    @Suppress("DEPRECATION")
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (webView.canGoBack()) {
             webView.goBack()
         } else {
-            // Intentionally block closing the app via the back button for kiosk/POS mode
-            // super.onBackPressed()
+            super.onBackPressed()
         }
     }
 }
