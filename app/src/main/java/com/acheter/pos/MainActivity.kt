@@ -42,6 +42,9 @@ class MainActivity : AppCompatActivity() {
             loadWithOverviewMode = true
         }
 
+        // Enable debugging via chrome://inspect/#devices
+        WebView.setWebContentsDebuggingEnabled(true)
+
         webView.webViewClient = WebViewClient()
         webView.webChromeClient = WebChromeClient()
 
