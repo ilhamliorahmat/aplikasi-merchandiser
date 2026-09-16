@@ -42,7 +42,30 @@ class MainActivity : AppCompatActivity() {
         // Enable debugging via chrome://inspect/#devices
         WebView.setWebContentsDebuggingEnabled(true)
 
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: android.webkit.WebResourceRequest?
+            ): Boolean {
+                val url = request?.url?.toString() ?: return false
+                
+                // Let the WebView load standard web pages
+                if (url.startsWith("http://") || url.startsWith("https://")) {
+                    return false
+                }
+                
+                // Handle custom schemes like whatsapp://, intent://, tel:, mailto:
+                return try {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                    startActivity(intent)
+                    true
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Failed to launch intent for: $url", e)
+                    android.widget.Toast.makeText(this@MainActivity, "No app installed to handle this link.", android.widget.Toast.LENGTH_SHORT).show()
+                    true
+                }
+            }
+        }
         webView.webChromeClient = WebChromeClient()
 
         // Inject the Native Hardware Bridge into the Web App
