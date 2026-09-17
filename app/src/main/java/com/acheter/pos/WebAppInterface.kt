@@ -109,12 +109,12 @@ class WebAppInterface(private val mContext: Context, private val webView: WebVie
     }
 
     /**
-     * Called from Web App: AndroidBridge.printReceipt(htmlContent)
+     * Called from Web App: AndroidBridge.printReceipt(htmlContentOrUrl)
      */
     @JavascriptInterface
-    fun printReceipt(htmlContent: String) {
+    fun printReceipt(htmlContentOrUrl: String) {
         mainHandler.post {
-            // Create a hidden WebView to render the HTML
+            // Create a hidden WebView to render the content
             val printWebView = WebView(mContext)
             hiddenPrintWebView = printWebView
             
@@ -125,9 +125,30 @@ class WebAppInterface(private val mContext: Context, private val webView: WebVie
                 }
             }
             
-            // Load the HTML string into the hidden WebView
-            val baseURL = "file:///android_asset/"
-            printWebView.loadDataWithBaseURL(baseURL, htmlContent, "text/HTML", "UTF-8", null)
+            // Check if the payload is a URL (e.g., "receipt-print.php?id=17" or "http...")
+            if (htmlContentOrUrl.contains(".php") || htmlContentOrUrl.startsWith("http")) {
+                var finalUrl = htmlContentOrUrl
+                
+                // If it's a relative URL, resolve it against the current main WebView URL
+                if (!htmlContentOrUrl.startsWith("http")) {
+                    val currentMainUrl = this.webView.url ?: ""
+                    if (currentMainUrl.isNotEmpty()) {
+                        try {
+                            val baseUri = java.net.URI(currentMainUrl)
+                            finalUrl = baseUri.resolve(htmlContentOrUrl).toString()
+                        } catch (e: Exception) {
+                            Log.e("WebAppInterface", "Failed to resolve relative URL", e)
+                        }
+                    }
+                }
+                
+                Log.d("WebAppInterface", "Loading Receipt URL: $finalUrl")
+                printWebView.loadUrl(finalUrl)
+            } else {
+                // Treat as raw HTML string
+                val baseURL = "file:///android_asset/"
+                printWebView.loadDataWithBaseURL(baseURL, htmlContentOrUrl, "text/HTML", "UTF-8", null)
+            }
         }
     }
 
