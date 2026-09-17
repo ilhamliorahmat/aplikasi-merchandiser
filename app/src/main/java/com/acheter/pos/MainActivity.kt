@@ -63,6 +63,8 @@ class MainActivity : AppCompatActivity() {
             mediaPlaybackRequiresUserGesture = false
             useWideViewPort = true
             loadWithOverviewMode = true
+            // Hardened: Spoof standard Chrome Mobile User-Agent to bypass strict WAF/Cloudflare blocks
+            userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
         }
 
         // Enable debugging via chrome://inspect/#devices
@@ -89,6 +91,30 @@ class MainActivity : AppCompatActivity() {
                     android.util.Log.e("MainActivity", "Failed to launch intent for: $url", e)
                     android.widget.Toast.makeText(this@MainActivity, "No app installed to handle this link.", android.widget.Toast.LENGTH_SHORT).show()
                     true
+                }
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: android.webkit.WebResourceRequest?,
+                error: android.webkit.WebResourceError?
+            ) {
+                super.onReceivedError(view, request, error)
+                if (request?.isForMainFrame == true) {
+                    // Route to our graceful native offline screen
+                    view?.loadUrl("file:///android_asset/error.html")
+                }
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: android.webkit.WebResourceRequest?,
+                errorResponse: android.webkit.WebResourceResponse?
+            ) {
+                super.onReceivedHttpError(view, request, errorResponse)
+                if (request?.isForMainFrame == true) {
+                    // Also route HTTP 5xx or connection drops to the offline screen
+                    view?.loadUrl("file:///android_asset/error.html")
                 }
             }
         }

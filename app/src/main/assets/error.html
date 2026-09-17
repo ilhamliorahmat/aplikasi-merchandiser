@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Error</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            height: 100vh; margin: 0; background-color: #f8fafc; color: #334155; 
+            text-align: center; padding: 20px; box-sizing: border-box;
+        }
+        h1 { font-size: 24px; color: #0f172a; margin-bottom: 10px; }
+        p { font-size: 16px; margin-bottom: 30px; max-width: 400px; color: #64748b;}
+        button { 
+            background-color: #0f172a; color: white; border: none; 
+            padding: 14px 28px; border-radius: 8px; font-size: 16px; font-weight: 600; 
+            cursor: pointer; transition: background-color 0.2s; 
+        }
+        button:active { background-color: #1e293b; }
+        .icon { margin-bottom: 24px; color: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div class="icon">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.707 10.707L13.293 13.293M13.293 10.707L10.707 13.293M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"/>
+        </svg>
+    </div>
+    <h1>Connection Lost</h1>
+    <p>We couldn't connect to the POS server. Please check your internet connection or verify the server status.</p>
+    <button onclick="window.location.href='https://acheter.xo.je'">Tap to Retry</button>
+</body>
+</html>
