@@ -69,7 +69,9 @@ class MainActivity : AppCompatActivity() {
         webView.webChromeClient = WebChromeClient()
 
         // Inject the Native Hardware Bridge into the Web App
-        webView.addJavascriptInterface(WebAppInterface(this, webView), "AndroidBridge")
+        val bridge = WebAppInterface(this, webView)
+        webView.addJavascriptInterface(bridge, "AndroidBridge")
+        webView.addJavascriptInterface(bridge, "POSNativeBridge")
 
         // Load the Dedicated POS Web App
         webView.loadUrl("https://acheter.xo.je")

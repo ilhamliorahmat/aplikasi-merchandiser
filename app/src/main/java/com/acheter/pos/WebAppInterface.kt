@@ -82,4 +82,55 @@ class WebAppInterface(private val mContext: Context, private val webView: WebVie
             }
         }
     }
+
+    /**
+     * Called from Web App: POSNativeBridge.shareImageAndText(base64Data, text, phone)
+     */
+    @JavascriptInterface
+    fun shareImageAndText(base64Data: String, text: String, phone: String) {
+        try {
+            // 1. Strip the data URI prefix if present
+            val cleanBase64 = if (base64Data.contains(",")) {
+                base64Data.split(",")[1]
+            } else {
+                base64Data
+            }
+
+            // 2. Decode the Base64 string into a byte array
+            val decodedBytes = Base64.decode(cleanBase64, Base64.DEFAULT)
+
+            // 3. Save to a temporary file in the cache directory
+            val cachePath = java.io.File(mContext.cacheDir, "shared_receipts")
+            cachePath.mkdirs() // Create directory if it doesn't exist
+            val imageFile = java.io.File(cachePath, "receipt_share_${System.currentTimeMillis()}.png")
+            
+            val fos = java.io.FileOutputStream(imageFile)
+            fos.use { it.write(decodedBytes) }
+
+            // 4. Generate the secure content:// URI using FileProvider
+            val authority = "${mContext.packageName}.fileprovider"
+            val contentUri = androidx.core.content.FileProvider.getUriForFile(mContext, authority, imageFile)
+
+            // 5. Fire the Share Intent on the Main Thread
+            mainHandler.post {
+                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "image/png"
+                    putExtra(android.content.Intent.EXTRA_STREAM, contentUri)
+                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                
+                val chooser = android.content.Intent.createChooser(shareIntent, "Share Receipt via...")
+                // In case the context isn't an activity context, though it usually is
+                chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                mContext.startActivity(chooser)
+            }
+
+        } catch (e: Exception) {
+            Log.e("WebAppInterface", "Error sharing image", e)
+            mainHandler.post {
+                Toast.makeText(mContext, "Failed to share image: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 }
