@@ -110,75 +110,69 @@ class WebAppInterface(private val mContext: Context, private val webView: WebVie
 
     /**
      * Called from Web App: AndroidBridge.printReceipt(htmlContentOrUrl)
+     * Overridden to fetch URL and silently push to Bluetooth.
      */
     @JavascriptInterface
     fun printReceipt(htmlContentOrUrl: String) {
-        mainHandler.post {
-            // Create a hidden WebView to render the content
-            val printWebView = WebView(mContext)
-            hiddenPrintWebView = printWebView
-            
-            printWebView.webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView, url: String) {
-                    super.onPageFinished(view, url)
-                    createWebPrintJob(view)
-                }
-            }
-            
-            // Check if the payload is a URL (e.g., "receipt-print.php?id=17" or "http...")
-            if (htmlContentOrUrl.contains(".php") || htmlContentOrUrl.startsWith("http")) {
+        Thread {
+            try {
                 var finalUrl = htmlContentOrUrl
+                var rawHtml = htmlContentOrUrl
                 
-                // If it's a relative URL, resolve it against the current main WebView URL
-                if (!htmlContentOrUrl.startsWith("http")) {
-                    val currentMainUrl = this.webView.url ?: ""
-                    if (currentMainUrl.isNotEmpty()) {
-                        try {
+                // If it's a URL, fetch it
+                if (htmlContentOrUrl.contains(".php") || htmlContentOrUrl.startsWith("http")) {
+                    if (!htmlContentOrUrl.startsWith("http")) {
+                        val currentMainUrl = this.webView.url ?: ""
+                        if (currentMainUrl.isNotEmpty()) {
                             val baseUri = java.net.URI(currentMainUrl)
                             finalUrl = baseUri.resolve(htmlContentOrUrl).toString()
-                        } catch (e: Exception) {
-                            Log.e("WebAppInterface", "Failed to resolve relative URL", e)
                         }
                     }
+                    
+                    val urlObj = java.net.URL(finalUrl)
+                    val connection = urlObj.openConnection() as java.net.HttpURLConnection
+                    connection.requestMethod = "GET"
+                    
+                    // Attach cookies in case the PHP receipt requires auth session
+                    val cookie = android.webkit.CookieManager.getInstance().getCookie(finalUrl)
+                    if (cookie != null) {
+                        connection.setRequestProperty("Cookie", cookie)
+                    }
+                    
+                    val inputStream = connection.inputStream
+                    rawHtml = inputStream.bufferedReader().use { it.readText() }
                 }
                 
-                Log.d("WebAppInterface", "Loading Receipt URL: $finalUrl")
-                printWebView.loadUrl(finalUrl)
-            } else {
-                // Treat as raw HTML string
-                val baseURL = "file:///android_asset/"
-                printWebView.loadDataWithBaseURL(baseURL, htmlContentOrUrl, "text/HTML", "UTF-8", null)
+                // Extremely basic HTML-to-Text parsing for thermal printers
+                val parsedText = rawHtml
+                    .replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), "\n")
+                    .replace(Regex("</p>|<div.*?>|<tr.*?>", RegexOption.IGNORE_CASE), "\n")
+                    .replace(Regex("<td.*?>|<th.*?>", RegexOption.IGNORE_CASE), "  ")
+                    .replace(Regex("<[^>]+>"), "") // strip remaining tags
+                    .replace(Regex("^\\s+$", RegexOption.MULTILINE), "") // clear empty lines
+                    .replace("&nbsp;", " ")
+                    .replace("&amp;", "&")
+                    .replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .trim() + "\n\n"
+
+                // Pass to the background ESC/POS bluetooth engine
+                // Default fallback test MAC. In production, this would be set via JS.
+                val HARDCODED_PRINTER_MAC = "00:11:22:33:44:55" 
+                
+                mainHandler.post {
+                    Toast.makeText(mContext, "Intercepted receipt. Routing to BT...", Toast.LENGTH_SHORT).show()
+                }
+                
+                printReceiptBluetooth(HARDCODED_PRINTER_MAC, parsedText)
+
+            } catch (e: Exception) {
+                Log.e("WebAppInterface", "Error hijacking printReceipt", e)
+                mainHandler.post {
+                    Toast.makeText(mContext, "Print fetch error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
-        }
-    }
-
-    private fun createWebPrintJob(webView: WebView) {
-        val printManager = mContext.getSystemService(Context.PRINT_SERVICE) as? PrintManager
-        if (printManager == null) {
-            Toast.makeText(mContext, "Print service not available", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        val jobName = "${mContext.getString(R.string.app_name)} Receipt"
-        
-        // Get the print adapter from the WebView
-        val printAdapter = webView.createPrintDocumentAdapter(jobName)
-        
-        // Let the Android OS handle the rest
-        printManager.print(
-            jobName,
-            printAdapter,
-            PrintAttributes.Builder().build()
-        )
-        
-        // Clean up memory
-        hiddenPrintWebView = null
-        
-        // Notify Web App that print intent was fired
-        val js = "if(typeof window.onHardwareStatusChanged === 'function') { window.onHardwareStatusChanged('PRINTER', 'SUCCESS'); }"
-        this.webView.post {
-            this.webView.evaluateJavascript(js, null)
-        }
+        }.start()
     }
 
     /**
