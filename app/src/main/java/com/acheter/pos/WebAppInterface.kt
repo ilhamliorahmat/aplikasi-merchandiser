@@ -6,30 +6,70 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import android.print.PrintAttributes
+import android.print.PrintManager
 import android.util.Base64
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import java.io.OutputStream
 
 class WebAppInterface(private val mContext: Context, private val webView: WebView) {
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var hiddenPrintWebView: WebView? = null
 
     /**
-     * Called from Web App: AndroidBridge.printReceipt(url)
+     * Called from Web App: AndroidBridge.printReceipt(htmlContent)
      */
     @JavascriptInterface
-    fun printReceipt(url: String) {
+    fun printReceipt(htmlContent: String) {
         mainHandler.post {
-            Toast.makeText(mContext, "Printing Receipt from: ${url.takeLast(20)}...", Toast.LENGTH_LONG).show()
+            // Create a hidden WebView to render the HTML
+            val printWebView = WebView(mContext)
+            hiddenPrintWebView = printWebView
+            
+            printWebView.webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView, url: String) {
+                    super.onPageFinished(view, url)
+                    createWebPrintJob(view)
+                }
+            }
+            
+            // Load the HTML string into the hidden WebView
+            val baseURL = "file:///android_asset/"
+            printWebView.loadDataWithBaseURL(baseURL, htmlContent, "text/HTML", "UTF-8", null)
         }
+    }
+
+    private fun createWebPrintJob(webView: WebView) {
+        val printManager = mContext.getSystemService(Context.PRINT_SERVICE) as? PrintManager
+        if (printManager == null) {
+            Toast.makeText(mContext, "Print service not available", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val jobName = "${mContext.getString(R.string.app_name)} Receipt"
         
-        // Example: Notify Web App that printing finished
+        // Get the print adapter from the WebView
+        val printAdapter = webView.createPrintDocumentAdapter(jobName)
+        
+        // Let the Android OS handle the rest
+        printManager.print(
+            jobName,
+            printAdapter,
+            PrintAttributes.Builder().build()
+        )
+        
+        // Clean up memory
+        hiddenPrintWebView = null
+        
+        // Notify Web App that print intent was fired
         val js = "if(typeof window.onHardwareStatusChanged === 'function') { window.onHardwareStatusChanged('PRINTER', 'SUCCESS'); }"
-        webView.post {
-            webView.evaluateJavascript(js, null)
+        this.webView.post {
+            this.webView.evaluateJavascript(js, null)
         }
     }
 
