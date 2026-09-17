@@ -15,10 +15,23 @@ android {
         versionName = "1.2.0"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("acheter.keystore")
+            storePassword = "acheter123"
+            keyAlias = "acheter"
+            keyPassword = "acheter123"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
