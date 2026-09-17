@@ -1,7 +1,14 @@
 package com.acheter.pos
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
@@ -14,12 +21,92 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import java.io.OutputStream
+import java.util.UUID
 
 class WebAppInterface(private val mContext: Context, private val webView: WebView) {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var hiddenPrintWebView: WebView? = null
+    
+    // Standard SPP UUID for Bluetooth Serial Port Profile
+    private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+
+    /**
+     * Called from Web App: AndroidBridge.printReceiptBluetooth(macAddress, textPayload)
+     */
+    @SuppressLint("MissingPermission")
+    @JavascriptInterface
+    fun printReceiptBluetooth(macAddress: String, textPayload: String) {
+        if (!hasBluetoothPermissions()) {
+            mainHandler.post {
+                Toast.makeText(mContext, "Missing Bluetooth Permissions!", Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+
+        Thread {
+            var socket: BluetoothSocket? = null
+            try {
+                val bluetoothManager = mContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                val bluetoothAdapter = bluetoothManager.adapter
+                
+                if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
+                    mainHandler.post { Toast.makeText(mContext, "Bluetooth is disabled", Toast.LENGTH_LONG).show() }
+                    return@Thread
+                }
+
+                val device: BluetoothDevice = bluetoothAdapter.getRemoteDevice(macAddress)
+                socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+                
+                bluetoothAdapter.cancelDiscovery()
+                socket.connect()
+
+                val outputStream = socket.outputStream
+                
+                // Initialize printer
+                val initCmd = byteArrayOf(0x1B, 0x40)
+                outputStream.write(initCmd)
+                
+                // Send text
+                outputStream.write(textPayload.toByteArray(Charsets.UTF_8))
+                
+                // Feed and cut paper
+                val cutCmd = byteArrayOf(0x1D, 0x56, 0x41, 0x10)
+                outputStream.write(cutCmd)
+                
+                outputStream.flush()
+
+                mainHandler.post {
+                    Toast.makeText(mContext, "Receipt Printed Successfully!", Toast.LENGTH_SHORT).show()
+                    val js = "if(typeof window.onHardwareStatusChanged === 'function') { window.onHardwareStatusChanged('PRINTER', 'SUCCESS'); }"
+                    this.webView.evaluateJavascript(js, null)
+                }
+
+            } catch (e: Exception) {
+                Log.e("WebAppInterface", "Bluetooth Print Error", e)
+                mainHandler.post {
+                    Toast.makeText(mContext, "Printer Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    val js = "if(typeof window.onHardwareStatusChanged === 'function') { window.onHardwareStatusChanged('PRINTER', 'ERROR'); }"
+                    this.webView.evaluateJavascript(js, null)
+                }
+            } finally {
+                try {
+                    socket?.close()
+                } catch (e: Exception) {
+                    Log.e("WebAppInterface", "Error closing socket", e)
+                }
+            }
+        }.start()
+    }
+
+    private fun hasBluetoothPermissions(): Boolean {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            return ContextCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        }
+        return ContextCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED
+    }
 
     /**
      * Called from Web App: AndroidBridge.printReceipt(htmlContent)
