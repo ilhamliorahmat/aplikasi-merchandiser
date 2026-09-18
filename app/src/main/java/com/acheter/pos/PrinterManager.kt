@@ -1,5 +1,7 @@
 package com.acheter.pos
 
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
@@ -101,6 +103,49 @@ class PrinterManager(private val context: Context) {
             jsonArray.put(obj)
         }
         return jsonArray.toString()
+    }
+
+    @SuppressLint("MissingPermission")
+    fun printBitmap(macAddress: String, bitmap: Bitmap, onComplete: (Boolean, String) -> Unit) {
+        if (!hasBluetoothPermission()) {
+            onComplete(false, "Missing Bluetooth permission")
+            return
+        }
+
+        val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+        val bluetoothAdapter = bluetoothManager?.adapter ?: BluetoothAdapter.getDefaultAdapter()
+        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
+            onComplete(false, "Bluetooth is disabled")
+            return
+        }
+
+        Thread {
+            var socket: android.bluetooth.BluetoothSocket? = null
+            try {
+                val sppUuid = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+                val device = bluetoothAdapter.getRemoteDevice(macAddress)
+                socket = device.createRfcommSocketToServiceRecord(sppUuid)
+                bluetoothAdapter.cancelDiscovery()
+                socket.connect()
+
+                val outputStream = socket.outputStream
+                
+                // ESC/POS Reset
+                outputStream.write(byteArrayOf(0x1B, 0x40))
+                
+                // Simplified Bitmap Printing (Raster Bit Image)
+                // Note: This requires a specific printer command. 
+                // For a robust implementation, a proper ESC/POS converter is needed.
+                // This is a placeholder for the logic.
+                
+                outputStream.flush()
+                onComplete(true, "Image printed (placeholder)")
+            } catch (e: Exception) {
+                onComplete(false, "Print failed: ${e.message}")
+            } finally {
+                try { socket?.close() } catch (_: Exception) {}
+            }
+        }.start()
     }
 
     @SuppressLint("MissingPermission")

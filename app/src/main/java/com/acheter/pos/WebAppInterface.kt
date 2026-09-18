@@ -21,6 +21,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import android.graphics.BitmapFactory
 import androidx.core.content.ContextCompat
 import java.io.OutputStream
 import java.util.UUID
@@ -126,10 +127,37 @@ class WebAppInterface(private val mContext: Context, private val webView: WebVie
         return ContextCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED
     }
 
-    /**
-     * Called from Web App: AndroidBridge.printReceipt(htmlContentOrUrl)
-     * Overridden to fetch URL and silently push to Bluetooth.
-     */
+    @JavascriptInterface
+    fun printReceiptImage(base64Data: String) {
+        try {
+            val cleanBase64 = if (base64Data.contains(",")) {
+                base64Data.split(",")[1]
+            } else {
+                base64Data
+            }
+            val decodedBytes = Base64.decode(cleanBase64, Base64.DEFAULT)
+            val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+
+            val assignedMac = printerManager.getSavedPrinterMac()
+            if (assignedMac.isNullOrBlank()) {
+                mainHandler.post {
+                    Toast.makeText(mContext, "No printer assigned.", Toast.LENGTH_LONG).show()
+                }
+                return
+            }
+
+            printerManager.printBitmap(assignedMac, bitmap) { success, msg ->
+                mainHandler.post {
+                    Toast.makeText(mContext, msg, Toast.LENGTH_LONG).show()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("WebAppInterface", "Error printing image", e)
+            mainHandler.post {
+                Toast.makeText(mContext, "Print error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
     @JavascriptInterface
     fun printReceipt(htmlContentOrUrl: String) {
         Thread {
