@@ -3,30 +3,268 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Acheter POS Wrapper</title>
+    <title>L'élixir de Mathieu - POS Hardware Wrapper</title>
     <style>
-      body { font-family: system-ui, sans-serif; padding: 2rem; line-height: 1.6; color: #334155; background: #f8fafc; }
-      h1 { color: #0f172a; font-size: 1.5rem; margin-top: 0; }
-      .container { max-width: 500px; margin: 2rem auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border: 1px solid #e2e8f0; }
-      ol { padding-left: 1.5rem; }
+      :root {
+        --bg-color: #0b0f19;
+        --card-bg: #151d2f;
+        --border-color: #243049;
+        --accent-gold: #d4af37;
+        --accent-gold-hover: #b8972e;
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --success: #10b981;
+        --warning: #f59e0b;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        padding: 1.5rem;
+        line-height: 1.6;
+        color: var(--text-primary);
+        background: var(--bg-color);
+        margin: 0;
+      }
+      .wrapper {
+        max-width: 680px;
+        margin: 1.5rem auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      .header h1 {
+        color: var(--accent-gold);
+        font-size: 1.75rem;
+        margin: 0 0 0.5rem 0;
+        letter-spacing: 0.5px;
+      }
+      .header p {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin: 0;
+      }
+      .card {
+        background: var(--card-bg);
+        padding: 1.5rem;
+        border-radius: 14px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        margin-bottom: 1.5rem;
+      }
+      .card-title {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .badge-connected { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4); }
+      .badge-simulated { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.4); }
+      
+      .status-box {
+        background: rgba(11, 15, 25, 0.6);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.25rem;
+      }
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+      }
+      .status-row:last-child { margin-bottom: 0; }
+      .status-label { color: var(--text-secondary); }
+      .status-value { font-weight: 500; color: #ffffff; }
+      
+      .btn-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+      }
+      .btn {
+        background: #1e293b;
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+      }
+      .btn:hover {
+        background: #28364e;
+        border-color: #3b4d6e;
+      }
+      .btn-primary {
+        background: var(--accent-gold);
+        color: #0b0f19;
+        font-weight: 600;
+        border: none;
+      }
+      .btn-primary:hover {
+        background: var(--accent-gold-hover);
+      }
+      
+      .code-box {
+        background: #090d16;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.825rem;
+        color: #93c5fd;
+        overflow-x: auto;
+      }
+      ol { padding-left: 1.25rem; margin: 0.5rem 0; color: var(--text-secondary); font-size: 0.9rem; }
       li { margin-bottom: 0.5rem; }
-      .btn-stub { display: inline-block; background: #0f172a; color: white; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.875rem; font-weight: 500; margin-top: 1rem; }
+      code { color: #facc15; }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h1>Acheter POS - Android Wrapper</h1>
-      <p>This project has been converted into a <strong>Native Android (Kotlin)</strong> codebase and is ready for export.</p>
-      <p>The web preview cannot run native Android code directly. To get your APK:</p>
-      <ol>
-        <li>Click <strong>Export to GitHub / Download ZIP</strong> in the AI Studio settings menu.</li>
-        <li>If exporting to GitHub, go to the <strong>Actions</strong> tab in your repository.</li>
-        <li>The automated workflow will build the Android project.</li>
-        <li>Download the built <code>app-debug.apk</code> file to your tablet.</li>
-      </ol>
-      <p style="margin-top: 2rem; font-size: 0.875rem; color: #64748b;">
-        * Note: The source code is located in the <code>/app</code> directory and the GitHub Action is in <code>.github/workflows</code>.
-      </p>
+    <div class="wrapper" id="app-root">
+      <div class="header" id="brand-header">
+        <h1>L'élixir de Mathieu</h1>
+        <p>Dedicated POS Native Android Hardware Wrapper</p>
+      </div>
+
+      <!-- Hardware & Bluetooth Device Manager Panel -->
+      <div class="card" id="printer-manager-card">
+        <div class="card-title">
+          <span>Bluetooth Thermal Printer Manager</span>
+          <span id="bridge-status-badge" class="badge badge-simulated">Detecting...</span>
+        </div>
+
+        <div class="status-box" id="printer-status-box">
+          <div class="status-row">
+            <span class="status-label">Assigned Printer:</span>
+            <span class="status-value" id="status-printer-name">Scanning...</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Hardware MAC:</span>
+            <span class="status-value" id="status-printer-mac">Scanning...</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Native Bridge:</span>
+            <span class="status-value" id="status-bridge-mode">Connecting...</span>
+          </div>
+        </div>
+
+        <div class="btn-grid" id="action-buttons-grid">
+          <button class="btn btn-primary" id="btn-open-printer-settings" onclick="openPrinterManagerUI()">
+            Select / Assign Printer
+          </button>
+          <button class="btn" id="btn-test-print" onclick="triggerTestPrint()">
+            Run ESC/POS Test Print
+          </button>
+        </div>
+      </div>
+
+      <!-- Bi-directional Bridge API Reference -->
+      <div class="card" id="api-reference-card">
+        <div class="card-title">
+          <span>JavaScript Hardware Bridge APIs</span>
+        </div>
+        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0;">
+          The web application (<code>https://acheter.xo.je</code>) can directly control the hardware via:
+        </p>
+        <div class="code-box" id="code-snippet-box">
+// 1. Open Native Bluetooth Device Manager Dialog
+window.POSNativeBridge.openPrinterSettings();
+
+// 2. Check Assigned Printer State
+const info = JSON.parse(window.POSNativeBridge.getAssignedPrinter());
+console.log(info.assigned, info.name, info.mac);
+
+// 3. Trigger Test Print
+window.POSNativeBridge.testPrintAssignedPrinter();
+
+// 4. Auto-Intercepted POS Receipt Print (Routes to Assigned MAC)
+window.AndroidBridge.printReceipt("https://acheter.xo.je/receipt.php?id=123");
+        </div>
+      </div>
+
+      <!-- Deployment Instructions -->
+      <div class="card" id="build-instructions-card">
+        <div class="card-title">
+          <span>Production APK Export</span>
+        </div>
+        <ol>
+          <li>All native source changes (<code>PrinterManager.kt</code>, <code>MainActivity.kt</code>, <code>WebAppInterface.kt</code>) are compiled in <code>/app</code>.</li>
+          <li>Export via <strong>Settings &gt; Export to GitHub / Download ZIP</strong>.</li>
+          <li>The GitHub Action builds the production APK signed with <code>acheter.keystore</code>.</li>
+        </ol>
+      </div>
     </div>
+
+    <script>
+      function checkHardwareStatus() {
+        const badge = document.getElementById('bridge-status-badge');
+        const nameEl = document.getElementById('status-printer-name');
+        const macEl = document.getElementById('status-printer-mac');
+        const modeEl = document.getElementById('status-bridge-mode');
+
+        if (window.POSNativeBridge || window.AndroidBridge) {
+          badge.className = 'badge badge-connected';
+          badge.innerText = 'Native Live';
+          modeEl.innerText = 'Active (Android WebView)';
+
+          try {
+            const bridge = window.POSNativeBridge || window.AndroidBridge;
+            if (typeof bridge.getAssignedPrinter === 'function') {
+              const data = JSON.parse(bridge.getAssignedPrinter());
+              if (data.assigned) {
+                nameEl.innerText = data.name || 'Assigned Thermal Printer';
+                macEl.innerText = data.mac;
+              } else {
+                nameEl.innerText = 'None (Unassigned)';
+                macEl.innerText = 'Tap "Select / Assign Printer"';
+              }
+            }
+          } catch (e) {
+            nameEl.innerText = 'Ready';
+            macEl.innerText = 'Ready';
+          }
+        } else {
+          badge.className = 'badge badge-simulated';
+          badge.innerText = 'Web Browser Preview';
+          modeEl.innerText = 'Web Browser Mode';
+          nameEl.innerText = 'Stored in Android Wrapper';
+          macEl.innerText = 'Assigned on Tablet';
+        }
+      }
+
+      function openPrinterManagerUI() {
+        if (window.POSNativeBridge && typeof window.POSNativeBridge.openPrinterSettings === 'function') {
+          window.POSNativeBridge.openPrinterSettings();
+        } else if (window.AndroidBridge && typeof window.AndroidBridge.openPrinterManager === 'function') {
+          window.AndroidBridge.openPrinterManager();
+        } else {
+          alert("Native Bridge Notice:\n\nWhen running inside the Android APK on the tablet, this button immediately displays the native Bluetooth Device Manager dialog to choose and pair your thermal printer.");
+        }
+      }
+
+      function triggerTestPrint() {
+        if (window.POSNativeBridge && typeof window.POSNativeBridge.testPrintAssignedPrinter === 'function') {
+          window.POSNativeBridge.testPrintAssignedPrinter();
+        } else {
+          alert("Native Bridge Notice:\n\nWhen running inside the Android APK, this dispatches raw ESC/POS test bytes (L'élixir de Mathieu POS Test) directly to your thermal printer via Bluetooth RFCOMM socket.");
+        }
+      }
+
+      window.addEventListener('DOMContentLoaded', checkHardwareStatus);
+      setTimeout(checkHardwareStatus, 500);
+    </script>
   </body>
 </html>

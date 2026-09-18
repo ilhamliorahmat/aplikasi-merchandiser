@@ -2,22 +2,32 @@ package com.acheter.pos
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.KeyEvent
+import android.view.Menu
+import android.view.MenuItem
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
+    private val MENU_PRINTER_SETTINGS = 1001
+
     private lateinit var webView: WebView
+    lateinit var bridge: WebAppInterface
+    lateinit var printerManager: PrinterManager
     
     // Buffer for HID Keyboard Scanners
     private var barcodeBuffer = java.lang.StringBuilder()
@@ -121,7 +131,8 @@ class MainActivity : AppCompatActivity() {
         webView.webChromeClient = WebChromeClient()
 
         // Inject the Native Hardware Bridge into the Web App
-        val bridge = WebAppInterface(this, webView)
+        bridge = WebAppInterface(this, webView)
+        printerManager = bridge.printerManager
         webView.addJavascriptInterface(bridge, "AndroidBridge")
         webView.addJavascriptInterface(bridge, "POSNativeBridge")
 
@@ -169,5 +180,78 @@ class MainActivity : AppCompatActivity() {
         } else {
             super.onBackPressed()
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        val item = menu?.add(0, MENU_PRINTER_SETTINGS, 0, "Printer")
+        item?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == MENU_PRINTER_SETTINGS) {
+            showPrinterManagerDialog()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    fun showPrinterManagerDialog() {
+        val printers = printerManager.getBondedPrinters()
+        if (printers.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle("Bluetooth Printer Manager")
+                .setMessage("No paired Bluetooth devices detected.\n\nPlease open Android Bluetooth Settings, turn on Bluetooth, and pair your thermal receipt printer first.")
+                .setPositiveButton("Open BT Settings") { _, _ ->
+                    try {
+                        startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "Could not open Bluetooth settings", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton("Close", null)
+                .show()
+            return
+        }
+
+        val savedMac = printerManager.getSavedPrinterMac()
+        var selectedIndex = printers.indexOfFirst { it.address == savedMac }
+        if (selectedIndex == -1) selectedIndex = 0
+
+        val itemLabels = printers.map { p ->
+            val statusTag = if (p.address == savedMac) "  ★ [ACTIVE]" else ""
+            "${p.name}\n${p.address}$statusTag"
+        }.toTypedArray()
+
+        var currentPick = selectedIndex
+
+        AlertDialog.Builder(this)
+            .setTitle("Assign Thermal Printer")
+            .setSingleChoiceItems(itemLabels, selectedIndex) { _, which ->
+                currentPick = which
+            }
+            .setPositiveButton("Assign & Save") { _, _ ->
+                if (currentPick in printers.indices) {
+                    val chosen = printers[currentPick]
+                    printerManager.saveSelectedPrinter(chosen.address, chosen.name)
+                    Toast.makeText(this, "Assigned printer: ${chosen.name}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNeutralButton("Test Print") { _, _ ->
+                if (currentPick in printers.indices) {
+                    val chosen = printers[currentPick]
+                    Toast.makeText(this, "Sending test print to ${chosen.name}...", Toast.LENGTH_SHORT).show()
+                    printerManager.testPrint(chosen.address) { success, message ->
+                        runOnUiThread {
+                            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton("Clear") { _, _ ->
+                printerManager.clearSelectedPrinter()
+                Toast.makeText(this, "Printer assignment cleared", Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 }
