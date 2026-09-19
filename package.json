@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "html2canvas": "^1.4.1",
-    "sharp": "^0.35.4",
     "vite": "^6.2.3"
   }
 }

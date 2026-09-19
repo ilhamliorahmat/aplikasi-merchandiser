@@ -1,6 +1,6 @@
 {
-  "name": "POS Hardware Wrapper",
-  "description": "A web wrapper for POS systems supporting external Bluetooth and USB-OTG hardware integrations like receipt printers and barcode scanners.",
-  "requestFramePermissions": ["usb", "bluetooth", "serial"],
+  "name": "Acheter POS",
+  "description": "A POS application with robust Bluetooth thermal printing capabilities.",
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
