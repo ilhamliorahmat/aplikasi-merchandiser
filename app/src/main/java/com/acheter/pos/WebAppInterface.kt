@@ -55,10 +55,21 @@ class WebAppInterface(private val mContext: Context, private val webView: WebVie
     }
 
     @JavascriptInterface
-    fun openPrinterSettings() {
+    fun getBondedDevices(): String {
+        return printerManager.getBondedDevices().toString()
+    }
+
+    @JavascriptInterface
+    fun getPrinterDiagnostics(): String {
+        return printerManager.getPrinterDiagnostics().toString()
+    }
+
+    @JavascriptInterface
+    fun assignPrinter(mac: String, name: String) {
+        printerManager.saveSelectedPrinter(mac, name)
         mainHandler.post {
-            Toast.makeText(mContext, "Opening printer settings...", Toast.LENGTH_SHORT).show()
-            // (mContext as? MainActivity)?.showPrinterManagerDialog() // Need to re-implement MainActivity
+            Toast.makeText(mContext, "Printer assigned: $name", Toast.LENGTH_SHORT).show()
         }
     }
+
 }

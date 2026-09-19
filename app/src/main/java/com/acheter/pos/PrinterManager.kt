@@ -45,6 +45,50 @@ class PrinterManager(private val context: Context) {
     }
 
     @SuppressLint("MissingPermission")
+    fun getBondedDevices(): JSONArray {
+        val jsonArray = JSONArray()
+        if (!hasBluetoothPermission()) return jsonArray
+
+        val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+        val bluetoothAdapter = bluetoothManager?.adapter ?: BluetoothAdapter.getDefaultAdapter()
+        
+        if (bluetoothAdapter != null && bluetoothAdapter.isEnabled) {
+            val devices = bluetoothAdapter.bondedDevices
+            for (device in devices) {
+                val jsonDevice = JSONObject()
+                jsonDevice.put("name", device.name ?: "Unknown")
+                jsonDevice.put("mac", device.address)
+                jsonArray.put(jsonDevice)
+            }
+        }
+        return jsonArray
+    }
+
+    @SuppressLint("MissingPermission")
+    fun getPrinterDiagnostics(): JSONObject {
+        val diagnostics = JSONObject()
+        val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+        val bluetoothAdapter = bluetoothManager?.adapter ?: BluetoothAdapter.getDefaultAdapter()
+
+        diagnostics.put("bluetoothEnabled", bluetoothAdapter?.isEnabled ?: false)
+        
+        val mac = getSavedPrinterMac()
+        diagnostics.put("assigned", !mac.isNullOrBlank())
+        diagnostics.put("mac", mac ?: "None")
+        
+        if (!mac.isNullOrBlank() && bluetoothAdapter != null) {
+            // Check if device is still in paired list
+            val device = bluetoothAdapter.bondedDevices.find { it.address == mac }
+            diagnostics.put("paired", device != null)
+            diagnostics.put("name", device?.name ?: "Unknown")
+        } else {
+            diagnostics.put("paired", false)
+            diagnostics.put("name", "None")
+        }
+        return diagnostics
+    }
+
+    @SuppressLint("MissingPermission")
     fun printBitmap(macAddress: String, bitmap: Bitmap, onComplete: (Boolean, String) -> Unit) {
         if (!hasBluetoothPermission()) {
             onComplete(false, "Missing Bluetooth permission")
