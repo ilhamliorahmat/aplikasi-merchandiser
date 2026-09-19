@@ -1,10 +1,10 @@
-name: Build Android APK
+name: Build Frontend
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   workflow_dispatch:
 
 jobs:
@@ -12,24 +12,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
-    - name: Generate Gradle Wrapper
-      run: gradle wrapper --gradle-version 8.9
+      - name: Install dependencies
+        run: npm install
 
-    - name: Build Release APK
-      run: ./gradlew assembleRelease
+      - name: Build app
+        run: npm run build
 
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: acheter-pos-app
-        path: app/build/outputs/apk/release/acheter
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: merchandiser-build
+          path: dist
