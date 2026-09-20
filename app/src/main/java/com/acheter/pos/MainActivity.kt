@@ -1,6 +1,8 @@
 package com.acheter.pos
 
 import android.Manifest
+import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -9,8 +11,11 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,6 +29,12 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        private const val PREFS_NAME = "acheter_pos_prefs"
+        private const val KEY_SERVER_URL = "server_url"
+        private const val DEFAULT_WEB_APP_URL = "https://acheter.xo.je"
+    }
 
     private lateinit var webView: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
@@ -41,9 +52,59 @@ class MainActivity : AppCompatActivity() {
         setupLaunchers()
         checkAndRequestPermissions()
 
-        // Load the local POS Web Application (or Cloud Run dev server)
-        val webAppUrl = intent.getStringExtra("WEB_APP_URL") ?: "http://10.0.2.2:3000"
-        webView.loadUrl(webAppUrl)
+        // Check if new URL provided in intent
+        intent.getStringExtra("WEB_APP_URL")?.let { newUrl ->
+            if (newUrl.isNotBlank()) {
+                saveServerUrl(newUrl)
+            }
+        }
+
+        loadCurrentServerUrl()
+    }
+
+    private fun getSavedServerUrl(): String {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_SERVER_URL, DEFAULT_WEB_APP_URL) ?: DEFAULT_WEB_APP_URL
+    }
+
+    private fun saveServerUrl(url: String) {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_SERVER_URL, url.trim()).apply()
+    }
+
+    private fun loadCurrentServerUrl() {
+        val url = getSavedServerUrl()
+        webView.loadUrl(url)
+    }
+
+    private fun showUrlSettingsDialog() {
+        val currentUrl = getSavedServerUrl()
+        val input = EditText(this).apply {
+            setText(currentUrl)
+            setSelection(currentUrl.length)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Acheter POS Server URL")
+            .setMessage("Enter the Web POS application URL:")
+            .setView(input)
+            .setPositiveButton("Save & Reload") { _, _ ->
+                val newUrl = input.text.toString().trim()
+                if (newUrl.startsWith("http://") || newUrl.startsWith("https://")) {
+                    saveServerUrl(newUrl)
+                    webView.loadUrl(newUrl)
+                    Toast.makeText(this, "Server URL updated", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "URL must start with http:// or https://", Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .setNeutralButton("Reset Default") { _, _ ->
+                saveServerUrl(DEFAULT_WEB_APP_URL)
+                webView.loadUrl(DEFAULT_WEB_APP_URL)
+                Toast.makeText(this, "Reset to default: $DEFAULT_WEB_APP_URL", Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 
     private fun setupWebView() {
@@ -58,6 +119,22 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?
+            ) {
+                super.onReceivedError(view, request, error)
+                if (request?.isForMainFrame == true) {
+                    val failingUrl = request.url.toString()
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Failed to connect to $failingUrl. Tap to configure URL.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
 
