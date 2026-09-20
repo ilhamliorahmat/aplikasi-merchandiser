@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.AcheterPOS" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#0284C7</item>
+        <item name="colorPrimaryVariant">#0369A1</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+    </style>
+</resources>

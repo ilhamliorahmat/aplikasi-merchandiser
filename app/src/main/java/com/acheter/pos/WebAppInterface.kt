@@ -72,4 +72,9 @@ class WebAppInterface(private val mContext: Context, private val webView: WebVie
         }
     }
 
+    @JavascriptInterface
+    fun supportsFileUpload(): Boolean {
+        return true
+    }
+
 }
